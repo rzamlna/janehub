@@ -1,393 +1,211 @@
--- IkyyxzHub - WindUI Version
--- Webhook Feature
--- Made for Delta Executor
+-- Janehub - WindUI Version
+-- Webhook FIX for Delta Executor
 
-local WindUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"))()
+-- ===============================
+-- LOAD WIND UI
+-- ===============================
+local WindUI = loadstring(game:HttpGet(
+    "https://raw.githubusercontent.com/Footagesus/WindUI/main/dist/main.lua"
+))()
 
+-- ===============================
+-- HTTP REQUEST UNIVERSAL (WAJIB)
+-- ===============================
+local HttpService = game:GetService("HttpService")
+
+local http_request =
+    request or
+    http_request or
+    (syn and syn.request) or
+    (fluxus and fluxus.request)
+
+if not http_request then
+    warn("❌ Executor tidak support HTTP Request")
+end
+
+-- ===============================
+-- WINDOW
+-- ===============================
 local Window = WindUI:CreateWindow({
-    Title = "IkyyxzHub",
+    Title = "Janehub",
     Icon = "rbxassetid://10723415903",
     Author = "Ikyyxz",
-    Folder = "IkyyxzConfig",
+    Folder = "JanehubConfig",
     Size = UDim2.fromOffset(580, 460),
-    KeySystem = {
-        Key = "IkyyxzKey2024",
-        Note = "Join Discord untuk key!",
-        URL = "https://discord.gg/yourlink",
-        SaveKey = true
-    },
     Transparent = true,
     Theme = "Dark",
     SideBarWidth = 170,
     HasOutline = true
 })
 
--- Notifikasi saat load
 Window:Notify({
     Title = "Janehub",
     Content = "Script loaded successfully!",
     Duration = 5
 })
 
--- ===================================
--- TAB: WEBHOOK
--- ===================================
+-- ===============================
+-- WEBHOOK TAB
+-- ===============================
 local WebhookTab = Window:Tab({
     Name = "Webhook",
     Icon = "rbxassetid://10723407389",
-    Color = Color3.fromRGB(0, 125, 255)
+    Color = Color3.fromRGB(0,125,255)
 })
 
 local WebhookSection = WebhookTab:Section({
-    Name = "Discord Webhook Settings"
+    Name = "Discord Webhook"
 })
 
--- Variable untuk menyimpan webhook URL
 local webhookURL = ""
 local webhookEnabled = false
 
 WebhookSection:Input({
     Name = "Webhook URL",
     Placeholder = "https://discord.com/api/webhooks/...",
-    Value = "",
-    Callback = function(value)
-        webhookURL = value
-        if value ~= "" then
-            Window:Notify({
-                Title = "Webhook",
-                Content = "Webhook URL telah disimpan!",
-                Duration = 3
-            })
-        end
+    Callback = function(v)
+        webhookURL = v
     end
 })
 
 WebhookSection:Toggle({
     Name = "Enable Webhook",
-    Value = false,
-    Callback = function(value)
-        webhookEnabled = value
-        if value then
-            Window:Notify({
-                Title = "Webhook",
-                Content = "Webhook diaktifkan!",
-                Duration = 3
-            })
-        else
-            Window:Notify({
-                Title = "Webhook",
-                Content = "Webhook dinonaktifkan!",
-                Duration = 3
-            })
-        end
+    Callback = function(v)
+        webhookEnabled = v
     end
 })
 
+-- ===============================
+-- SEND WEBHOOK FUNCTION
+-- ===============================
+local function SendWebhook(content, embed)
+    if not webhookEnabled then return end
+    if webhookURL == "" then return end
+    if not http_request then return end
+
+    local data = {
+        username = "Janehub Bot",
+        avatar_url = "https://i.imgur.com/AfFp7pu.png",
+        content = content,
+        embeds = embed and {embed} or nil
+    }
+
+    pcall(function()
+        http_request({
+            Url = webhookURL,
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json"
+            },
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
+end
+
+-- ===============================
+-- MESSAGE SECTION
+-- ===============================
 local MessageSection = WebhookTab:Section({
     Name = "Send Message"
 })
 
 MessageSection:Input({
-    Name = "Message Content",
-    Placeholder = "Type your message here...",
-    Value = "",
+    Name = "Message",
+    Placeholder = "Type message...",
     Multiline = true,
-    Callback = function(value)
-        if webhookEnabled and webhookURL ~= "" and value ~= "" then
-            -- Kirim message ke webhook
-            local data = {
-                ["content"] = value,
-                ["username"] = "Janehub Bot",
-                ["avatar_url"] = "https://i.imgur.com/AfFp7pu.png"
-            }
-            
-            local success, result = pcall(function()
-                return request({
-                    Url = webhookURL,
-                    Method = "POST",
-                    Headers = {
-                        ["Content-Type"] = "application/json"
-                    },
-                    Body = game:GetService("HttpService"):JSONEncode(data)
-                })
-            end)
-            
-            if success then
-                Window:Notify({
-                    Title = "Webhook",
-                    Content = "Message sent successfully!",
-                    Duration = 3
-                })
-            else
-                Window:Notify({
-                    Title = "Error",
-                    Content = "Failed to send message!",
-                    Duration = 3
-                })
-            end
-        elseif webhookURL == "" then
+    Callback = function(text)
+        if text ~= "" then
+            SendWebhook(text)
             Window:Notify({
-                Title = "Error",
-                Content = "Please set webhook URL first!",
-                Duration = 3
-            })
-        elseif not webhookEnabled then
-            Window:Notify({
-                Title = "Error",
-                Content = "Please enable webhook first!",
+                Title = "Webhook",
+                Content = "Message sent",
                 Duration = 3
             })
         end
     end
 })
 
+-- ===============================
+-- PLAYER INFO
+-- ===============================
 local PlayerInfoSection = WebhookTab:Section({
-    Name = "Send Player Info"
+    Name = "Player Info"
 })
 
 PlayerInfoSection:Button({
     Name = "Send My Info",
     Callback = function()
-        if webhookEnabled and webhookURL ~= "" then
-            local player = game.Players.LocalPlayer
-            
-            -- Buat embed untuk Discord
-            local embed = {
-                ["title"] = "Player Information",
-                ["color"] = 65535, -- Blue color
-                ["fields"] = {
-                    {
-                        ["name"] = "Username",
-                        ["value"] = player.Name,
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "Display Name",
-                        ["value"] = player.DisplayName,
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "User ID",
-                        ["value"] = tostring(player.UserId),
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "Account Age",
-                        ["value"] = tostring(player.AccountAge) .. " days",
-                        ["inline"] = true
-                    },
-                    {
-                        ["name"] = "Game",
-                        ["value"] = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name,
-                        ["inline"] = false
-                    },
-                    {
-                        ["name"] = "Server JobId",
-                        ["value"] = game.JobId,
-                        ["inline"] = false
-                    }
-                },
-                ["thumbnail"] = {
-                    ["url"] = "https://www.roblox.com/headshot-thumbnail/image?userId=" .. player.UserId .. "&width=420&height=420&format=png"
-                },
-                ["footer"] = {
-                    ["text"] = "Janehub | " .. os.date("%c")
-                }
+        local p = game.Players.LocalPlayer
+
+        local embed = {
+            title = "Player Information",
+            color = 3447003,
+            fields = {
+                {name="Username", value=p.Name, inline=true},
+                {name="Display Name", value=p.DisplayName, inline=true},
+                {name="UserId", value=tostring(p.UserId), inline=true},
+                {name="Account Age", value=p.AccountAge.." days", inline=true},
+                {name="Game", value=game:GetService("MarketplaceService")
+                    :GetProductInfo(game.PlaceId).Name, inline=false},
+                {name="Server JobId", value=game.JobId, inline=false}
+            },
+            thumbnail = {
+                url = "https://www.roblox.com/headshot-thumbnail/image?userId="
+                    ..p.UserId.."&width=420&height=420&format=png"
+            },
+            footer = {
+                text = "Janehub | "..os.date("%c")
             }
-            
-            local data = {
-                ["username"] = "Janehub Bot",
-                ["avatar_url"] = "https://i.imgur.com/AfFp7pu.png",
-                ["embeds"] = {embed}
-            }
-            
-            local success, result = pcall(function()
-                return request({
-                    Url = webhookURL,
-                    Method = "POST",
-                    Headers = {
-                        ["Content-Type"] = "application/json"
-                    },
-                    Body = game:GetService("HttpService"):JSONEncode(data)
-                })
-            end)
-            
-            if success then
-                Window:Notify({
-                    Title = "Webhook",
-                    Content = "Player info sent successfully!",
-                    Duration = 3
-                })
-            else
-                Window:Notify({
-                    Title = "Error",
-                    Content = "Failed to send player info!",
-                    Duration = 3
-                })
-            end
-        else
-            Window:Notify({
-                Title = "Error",
-                Content = "Please configure webhook first!",
-                Duration = 3
-            })
-        end
+        }
+
+        SendWebhook(nil, embed)
+        Window:Notify({
+            Title = "Webhook",
+            Content = "Player info sent",
+            Duration = 3
+        })
     end
 })
 
-PlayerInfoSection:Button({
-    Name = "Send All Players Info",
+-- ===============================
+-- TEST WEBHOOK (PALING PENTING)
+-- ===============================
+local TestSection = WebhookTab:Section({
+    Name = "Test"
+})
+
+TestSection:Button({
+    Name = "Test Webhook (Delta)",
     Callback = function()
-        if webhookEnabled and webhookURL ~= "" then
-            local players = game.Players:GetPlayers()
-            local playerList = ""
-            
-            for i, player in ipairs(players) do
-                playerList = playerList .. i .. ". " .. player.Name .. " (ID: " .. player.UserId .. ")\n"
-            end
-            
-            local embed = {
-                ["title"] = "All Players in Server",
-                ["description"] = "Total Players: " .. #players,
-                ["color"] = 65535,
-                ["fields"] = {
-                    {
-                        ["name"] = "Player List",
-                        ["value"] = playerList ~= "" and playerList or "No players found",
-                        ["inline"] = false
-                    }
-                },
-                ["footer"] = {
-                    ["text"] = "Janehub | " .. os.date("%c")
-                }
-            }
-            
-            local data = {
-                ["username"] = "Janehub Bot",
-                ["avatar_url"] = "https://i.imgur.com/AfFp7pu.png",
-                ["embeds"] = {embed}
-            }
-            
-            local success, result = pcall(function()
-                return request({
-                    Url = webhookURL,
-                    Method = "POST",
-                    Headers = {
-                        ["Content-Type"] = "application/json"
-                    },
-                    Body = game:GetService("HttpService"):JSONEncode(data)
-                })
-            end)
-            
-            if success then
-                Window:Notify({
-                    Title = "Webhook",
-                    Content = "All players info sent!",
-                    Duration = 3
-                })
-            else
-                Window:Notify({
-                    Title = "Error",
-                    Content = "Failed to send players info!",
-                    Duration = 3
-                })
-            end
-        else
-            Window:Notify({
-                Title = "Error",
-                Content = "Please configure webhook first!",
-                Duration = 3
-            })
-        end
+        SendWebhook("✅ Webhook berhasil! (Delta Executor)")
+        Window:Notify({
+            Title = "Success",
+            Content = "Check Discord!",
+            Duration = 3
+        })
     end
 })
 
-local CustomSection = WebhookTab:Section({
-    Name = "Custom Webhook"
-})
-
-CustomSection:Button({
-    Name = "Test Webhook",
-    Callback = function()
-        if webhookEnabled and webhookURL ~= "" then
-            local data = {
-                ["content"] = "🔔 **Webhook Test**\n\nThis is a test message from IkyyxzHub!",
-                ["username"] = "Janehub Bot",
-                ["avatar_url"] = "https://i.imgur.com/AfFp7pu.png"
-            }
-            
-            local success, result = pcall(function()
-                return request({
-                    Url = webhookURL,
-                    Method = "POST",
-                    Headers = {
-                        ["Content-Type"] = "application/json"
-                    },
-                    Body = game:GetService("HttpService"):JSONEncode(data)
-                })
-            end)
-            
-            if success then
-                Window:Notify({
-                    Title = "Success",
-                    Content = "Webhook is working!",
-                    Duration = 3
-                })
-            else
-                Window:Notify({
-                    Title = "Error",
-                    Content = "Webhook test failed!",
-                    Duration = 3
-                })
-            end
-        else
-            Window:Notify({
-                Title = "Error",
-                Content = "Please configure webhook first!",
-                Duration = 3
-            })
-        end
-    end
-})
-
--- ===================================
--- TAB: SETTINGS
--- ===================================
+-- ===============================
+-- SETTINGS TAB
+-- ===============================
 local SettingsTab = Window:Tab({
     Name = "Settings",
-    Icon = "rbxassetid://10734950309",
-    Color = Color3.fromRGB(150, 150, 150)
+    Icon = "rbxassetid://10734950309"
 })
 
-local InfoSection = SettingsTab:Section({
-    Name = "Script Information"
-})
-
-InfoSection:Label({
-    Text = "Script: IkyyxzHub"
-})
-
-InfoSection:Label({
-    Text = "Version: 1.0"
-})
-
-InfoSection:Label({
-    Text = "Author: Ikyyxz"
-})
-
-local UISection = SettingsTab:Section({
-    Name = "UI Controls"
-})
-
-UISection:Button({
+SettingsTab:Section({
+    Name = "UI"
+}):Button({
     Name = "Destroy UI",
     Callback = function()
         Window:Destroy()
     end
 })
 
--- Init
+-- ===============================
+-- INIT LOG
+-- ===============================
 print("=== Janehub Loaded ===")
-print("WindUI Library Active")
-print("Webhook Feature Ready")
-print("=======================")
+print("Webhook: FIXED FOR DELTA")
+print("======================")
